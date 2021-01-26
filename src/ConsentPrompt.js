@@ -2,13 +2,9 @@ import React from 'react';
 import ConsentPromptForm from './ConsentPromptForm';
 
 class ConsentPrompt extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     render() {
         return(
-            <div class="consent-prompt">
+            <div className="consent-prompt">
                 <p>Inspired by anxiety and a random <a href="https://news.ycombinator.com/item?id=25670884"> HackerNews comment</a>,
                 this site uses your browser's text-to-speech system to allow you to experience Twitter through the outrageous din of a <a href="https://en.wikipedia.org/wiki/Party_line_(telephony)"> party line.</a></p>
                 

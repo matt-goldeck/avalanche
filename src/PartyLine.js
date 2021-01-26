@@ -87,7 +87,7 @@ class PartyLine extends React.Component {
     mapTweets() {
         return this.state.loadedTweets.map(tweet => (<Tweet 
                 content={tweet.content} 
-                id={tweet.id}
+                key={tweet.id}
                 displayRate={tweet.displayRate}
                 addTweet={this.loadTweet}/>
             )
@@ -96,23 +96,23 @@ class PartyLine extends React.Component {
     determineDisplay() {
         if (!this.state.consented) {
             return (
-                <div class="content-container-wrapper">
-                    <div class="content-container">
+                <div className="content-container-wrapper">
+                    <div className="content-container">
                         <ConsentPrompt toggleConsent={this.toggleConsent}/>
                     </div>
                 </div>
             );
         } else if (this.state.loadedTweets.length === 0) {
             return (
-                <div class="content-container-wrapper">
-                <div class="content-container">
+                <div className="content-container-wrapper">
+                <div className="content-container">
                     <p>The line is pretty quiet... Maybe something went wrong?</p>
                 </div>
                 </div>
             );
         } else {
             return (
-                <div class="tweets-container">
+                <div className="tweets-container">
                     {this.mapTweets()}
                 </div>
             )
@@ -122,7 +122,7 @@ class PartyLine extends React.Component {
     render() {
         let currentState = this.determineDisplay();
         return(
-            <div class="generic-container">
+            <div className="generic-container">
                 {currentState}
             </div>
         );

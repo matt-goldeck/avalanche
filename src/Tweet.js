@@ -54,7 +54,7 @@ class Tweet extends React.Component {
 
     render() {
         return(
-            <div class='tweet-wrapper'>
+            <div className='tweet-wrapper'>
                 {this.state.display}
             </div>
         );
