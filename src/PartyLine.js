@@ -8,7 +8,6 @@ class PartyLine extends React.Component {
         super(props);
         this.state = {
             consented: false,
-            tweetsBuffering: false, // currently loading tweets to buffer
             tweetsBuffered: false,  // have loaded tweets to buffer
             tweetOffset: 0,
             tweetBuffer: [],
@@ -27,12 +26,14 @@ class PartyLine extends React.Component {
         var synth = window.speechSynthesis;
         this.setState({synth: synth})
         if (!this.state.tweetsBuffered && !this.state.tweetsBuffering) {
-            this.setState({tweetsBuffering: true});
             this.getTweets();
         }
     }
 
-    loadTweet(){
+    bufferTweet(tweet) {
+        this.setState({tweetBuffer: [...this.state.tweetBuffer, tweet]})
+    }
+    loadTweet() {
         // if buffer near empty, refill with new tweets
         if(this.state.tweetBuffer.length <= 10 && this.state.tweetsBuffered){
             this.getTweets();
@@ -68,12 +69,11 @@ class PartyLine extends React.Component {
             // else continue loading tweets
             .then(data => (data.tweets.length === 0 ?
                 this.resetTweetOffset() : 
-                this.setState({
-                    tweetBuffer: [...this.state.tweetBuffer, ...data.tweets],
-                    tweetOffset: this.state.tweetOffset + 250, // increment offset
-                    tweetsBuffered: true,  // track state
-                    tweetsBuffering: false,
-                }))
+                data.tweets.map(tweet => this.bufferTweet(tweet)))
+            )
+            .then(this.setState({
+                tweetOffset: this.state.tweetOffset + 250, // increment offset
+                tweetsBuffered: true }) // track state
             )
     }
     
