@@ -9,10 +9,13 @@ class PartyLine extends React.Component {
         this.state = {
             consented: false,
             tweetsBuffered: false,  // have loaded tweets to buffer
+            tweetsLoaded: false,
             tweetOffset: 0,
             tweetBuffer: [],
             loadedTweets: [],
             currentRate: 1,
+            requestRetries: 0,
+            errorState: false,
         };
 
         this.determineDisplay = this.determineDisplay.bind(this);
@@ -20,23 +23,29 @@ class PartyLine extends React.Component {
         this.getTweets = this.getTweets.bind(this);
         this.resetTweetOffset = this.resetTweetOffset.bind(this);
         this.loadTweet = this.loadTweet.bind(this);
+        this.bufferTweets = this.bufferTweets.bind(this);
+        this.listenForBufferToLoad = this.listenForBufferToLoad.bind(this);
     }
 
     componentDidMount() {
-        var synth = window.speechSynthesis;
-        this.setState({synth: synth})
-        if (!this.state.tweetsBuffered && !this.state.tweetsBuffering) {
-            this.getTweets();
+        if (!this.state.tweetsBuffered) {
+            console.log("Component mounted; attempting to get tweets");
+            this.bufferTweets();
         }
     }
 
-    bufferTweet(tweet) {
-        this.setState({tweetBuffer: [...this.state.tweetBuffer, tweet]})
-    }
     loadTweet() {
-        // if buffer near empty, refill with new tweets
+        console.log("loading tweets");
+        // don't try to load a tweet if we've broken something
+        if(this.state.errorState || this.state.tweetBuffer.length === 0) {
+            this.setState({errorState: true});
+            return
+        }
+
+        // if buffer near empty and we've buffered before, refill buffer with new tweets
         if(this.state.tweetBuffer.length <= 10 && this.state.tweetsBuffered){
-            this.getTweets();
+            console.log("refilling tweets");
+            this.bufferTweets();
         }
 
         // remove a random tweet from the buffer and load into loadedTweets w/ current rate
@@ -45,9 +54,11 @@ class PartyLine extends React.Component {
         cachedTweet.displayRate = this.state.currentRate;
 
         this.setState({
-             loadedTweets: [...this.state.loadedTweets, cachedTweet],
-             tweetBuffer: [...this.state.tweetBuffer.filter(tweet => tweet.id !== cachedTweet.id)]
-        });
+            loadedTweets: [...this.state.loadedTweets, cachedTweet],
+            tweetBuffer: [...this.state.tweetBuffer.filter(tweet => tweet.id !== cachedTweet.id)],
+            tweetsLoaded: true,
+            }
+        );
 
         // increment rate if not yet at maximum
         if(this.state.currentRate < 5) {
@@ -57,31 +68,65 @@ class PartyLine extends React.Component {
 
     resetTweetOffset(){
         // called when no more tweets received from backend
+        console.log("Restting tweet offset!");
         this.setState({tweetOffset: 0});
-        this.getTweets();
+        this.bufferTweets();
     }
 
-    getTweets(callback) {
-        let url = `https://twitter-partyline.herokuapp.com/tweets/?offset=${this.state.tweetOffset}&limit=250`
-        fetch(url)
-            .then(response => response.json())
-            // if no more tweets received from backend, set offset to 0 and call getTweets() again
-            // else continue loading tweets
-            .then(data => (data.tweets.length === 0 ?
-                this.resetTweetOffset() : 
-                data.tweets.map(tweet => this.bufferTweet(tweet)))
-            )
-            .then(this.setState({
-                tweetOffset: this.state.tweetOffset + 250, // increment offset
-                tweetsBuffered: true }) // track state
-            )
+    getTweets() {
+        const maxRequestRetries = 10;
+        console.log("Getting tweets!");
+        fetch(`https://twitter-partyline.herokuapp.com/tweets/?offset=${this.state.tweetOffset}&limit=250`)
+        .then(response => response.json())
+        .then(data => data.tweets.length === 0 ?
+            this.resetTweetOffset() : 
+            this.setState({tweetBuffer: [...this.state.tweetBuffer, ...data.tweets]}))
+        .catch(error => {
+            // reset flags and offset on error
+            this.setState({
+                tweetOffset: this.state.tweetOffset-250,
+                requestRetries: this.state.requestRetries + 1,
+                tweetsBuffered: this.state.tweetBuffer.length > 0 ? true : false});  // dont reset this flag if we actually have tweets buffered
+            this.state.requestRetries <= maxRequestRetries ? 
+                setTimeout(() => this.bufferTweets(), 2000) // try again in two seconds if error
+                : this.setState({errorState: true})  // give up if tried 10 times
+         });
     }
-    
+
+    bufferTweets() {
+        console.log("Buffering tweets!");
+        this.getTweets();
+        this.setState({
+            tweetOffset: this.state.tweetOffset + 250,
+            tweetsBuffered: true }
+        );
+        
+        if(!this.state.tweetsLoaded) {
+            this.listenForBufferToLoad(0);  // kick off first tweet load
+        }
+    }   
+
+    listenForBufferToLoad(retries) {
+        // sometimes tweets can take a long time to load onto buffer, or bufferTweets() might be running into network issues
+        // keep trying to load a tweet until hit max retries
+        const maxRetries = 5;
+        console.log("listening for buffer...")
+        console.log(this.state)
+        if(this.state.tweetsBuffered && this.state.tweetBuffer.length > 0) {
+            console.log("Kicking off that first tweet!");
+            this.loadTweet();  // kick off first tweet
+        } else if(retries > maxRetries) {
+            return
+        } else {
+            console.log("retry!")
+            setTimeout(() => this.listenForBufferToLoad(retries + 1), 2000);  // retry in 2 secs if not yet buffered 
+        }
+    }
+
     toggleConsent() {
         // to pass down to ConsentPrompt
         let inverseConsent = !this.state.consented;
-        this.setState({...this.state, consented: inverseConsent});
-        this.loadTweet()  // kick off first tweet
+        this.setState({consented: inverseConsent});
     }
 
     mapTweets() {
@@ -93,7 +138,9 @@ class PartyLine extends React.Component {
             )
         )
     }
+
     determineDisplay() {
+        console.log("Determining display...")
         if (!this.state.consented) {
             return (
                 <div className="content-container-wrapper">
@@ -102,12 +149,20 @@ class PartyLine extends React.Component {
                     </div>
                 </div>
             );
-        } else if (this.state.loadedTweets.length === 0) {
+        } else if (this.state.errorState) {
             return (
                 <div className="content-container-wrapper">
-                <div className="content-container">
-                    <p>The line is pretty quiet... Maybe something went wrong?</p>
+                    <div className="content-container">
+                        <p>The line's been cut! <a href="www.matthewgoldeck.com">Matt</a> probably broke something!</p>
+                    </div>
                 </div>
+            );
+        } else if (!this.state.tweetsLoaded) {
+            return (
+                <div className="content-container-wrapper">
+                    <div className="content-container">
+                        <p>The line is pretty quiet, lets wait and see if something happens...</p>
+                    </div>
                 </div>
             );
         } else {

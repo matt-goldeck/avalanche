@@ -45,6 +45,8 @@ class Tweet extends React.Component {
         // higher speechRate == longer display time; 
         let calculateSpeechRate = () => 40 - (10*this.props.displayRate);
         let speechRate = calculateSpeechRate() > 0 ? calculateSpeechRate() : 1
+
+        // Display text at displayRate
         this.interval = setInterval(() => this.setState({ display: this.sliceString(this.state.display) }), speechRate);
     }
 
