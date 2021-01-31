@@ -37,17 +37,12 @@ class Tweet extends React.Component {
         var msg = new SpeechSynthesisUtterance();
         msg.text = this.filterMessage(this.props.content);  // don't read URLs
         msg.onend = () => this.props.addTweet();
-        msg.rate = this.props.displayRate;
-        // msg.voice = this.getRandomVoice();
-        this.setState({voice: msg.voice});
+        msg.rate = 2;
+        msg.voice = this.getRandomVoice();
         window.speechSynthesis.speak(msg);
-        
-        // higher speechRate == longer display time; 
-        let calculateSpeechRate = () => 40 - (10*this.props.displayRate);
-        let speechRate = calculateSpeechRate() > 0 ? calculateSpeechRate() : 1
-
-        // Display text at displayRate
-        this.interval = setInterval(() => this.setState({ display: this.sliceString(this.state.display) }), speechRate);
+    
+        // Slowly load text into state 
+        this.interval = setInterval(() => this.setState({ display: this.sliceString(this.state.display) }), 30);
     }
 
     componentWillUnmount() {
