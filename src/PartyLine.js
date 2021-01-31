@@ -29,13 +29,11 @@ class PartyLine extends React.Component {
 
     componentDidMount() {
         if (!this.state.tweetsBuffered) {
-            console.log("Component mounted; attempting to get tweets");
             this.bufferTweets();
         }
     }
 
     loadTweet() {
-        console.log("loading tweets");
         // don't try to load a tweet if we've broken something
         if(this.state.errorState || this.state.tweetBuffer.length === 0) {
             this.setState({errorState: true});
@@ -43,8 +41,8 @@ class PartyLine extends React.Component {
         }
 
         // if buffer near empty and we've buffered before, refill buffer with new tweets
-        if(this.state.tweetBuffer.length <= 10 && this.state.tweetsBuffered){
-            console.log("refilling tweets");
+        if(this.state.tweetBuffer.length <= 10 && this.state.tweetsBuffered && !this.state.refillngTweets){
+            this.setState({refillngTweets: true});
             this.bufferTweets();
         }
 
@@ -68,14 +66,12 @@ class PartyLine extends React.Component {
 
     resetTweetOffset(){
         // called when no more tweets received from backend
-        console.log("Restting tweet offset!");
         this.setState({tweetOffset: 0});
         this.bufferTweets();
     }
 
     getTweets() {
         const maxRequestRetries = 10;
-        console.log("Getting tweets!");
         fetch(`https://twitter-partyline.herokuapp.com/tweets/?offset=${this.state.tweetOffset}&limit=250`)
         .then(response => response.json())
         .then(data => data.tweets.length === 0 ?
@@ -94,12 +90,12 @@ class PartyLine extends React.Component {
     }
 
     bufferTweets() {
-        console.log("Buffering tweets!");
         this.getTweets();
         this.setState({
             tweetOffset: this.state.tweetOffset + 250,
-            tweetsBuffered: true }
-        );
+            tweetsBuffered: true,
+            refillngTweets: false, 
+        });
         
         if(!this.state.tweetsLoaded) {
             this.listenForBufferToLoad(0);  // kick off first tweet load
@@ -110,15 +106,11 @@ class PartyLine extends React.Component {
         // sometimes tweets can take a long time to load onto buffer, or bufferTweets() might be running into network issues
         // keep trying to load a tweet until hit max retries
         const maxRetries = 5;
-        console.log("listening for buffer...")
-        console.log(this.state)
         if(this.state.tweetsBuffered && this.state.tweetBuffer.length > 0) {
-            console.log("Kicking off that first tweet!");
             this.loadTweet();  // kick off first tweet
         } else if(retries > maxRetries) {
             return
         } else {
-            console.log("retry!")
             setTimeout(() => this.listenForBufferToLoad(retries + 1), 2000);  // retry in 2 secs if not yet buffered 
         }
     }
@@ -140,7 +132,6 @@ class PartyLine extends React.Component {
     }
 
     determineDisplay() {
-        console.log("Determining display...")
         if (!this.state.consented) {
             return (
                 <div className="content-container-wrapper">
