@@ -15,10 +15,10 @@ class ConsentPromptForm extends React.Component {
     render() {
         return(
             <div>
-                <form action="https://www.google.com">
+                <form action="https://www.matthewgoldeck.com/project/2021/02/01/twitter-party-line.html">
                     <div>
                         <button onClick={this.handleSubmit}>Dial me in, operator</button>
-                        <button type="submit" href="www.google.com">No thanks</button>
+                        <button type="submit" href="https://www.matthewgoldeck.com/project/2021/02/01/twitter-party-line.html">No thanks</button>
                     </div>
                 </form>
             </div>
