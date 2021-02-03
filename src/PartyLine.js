@@ -105,7 +105,7 @@ class PartyLine extends React.Component {
     listenForBufferToLoad(retries) {
         // sometimes tweets can take a long time to load onto buffer, or bufferTweets() might be running into network issues
         // keep trying to load a tweet until hit max retries
-        const maxRetries = 5;
+        const maxRetries = 10;
         if(this.state.tweetsBuffered && this.state.tweetBuffer.length > 0) {
             this.loadTweet();  // kick off first tweet
         } else if(retries > maxRetries) {
@@ -152,7 +152,7 @@ class PartyLine extends React.Component {
             return (
                 <div className="content-container-wrapper">
                     <div className="content-container">
-                        <p>The line is pretty quiet, lets wait and see if something happens...</p>
+                        <p>The line is pretty quiet... Maybe try refreshing the page if nothing happens?</p>
                     </div>
                 </div>
             );
